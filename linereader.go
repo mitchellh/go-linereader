@@ -50,6 +50,10 @@ func (r *Reader) Run() {
 	// Listen for bytes in a goroutine. We do this so that if we're blocking
 	// we can flush the bytes we have after some configured time. There is
 	// probably a way to make this a lot faster but this works for now.
+	//
+	// NOTE: This isn't particularly performant. I'm sure there is a better
+	// way to do this instead of sending single bytes on a channel, but it
+	// works fine.
 	buf := bufio.NewReader(r.Reader)
 	byteCh := make(chan byte)
 	doneCh := make(chan error)
@@ -82,7 +86,9 @@ func (r *Reader) Run() {
 			case err = <-doneCh:
 				brk = true
 			case <-time.After(r.Timeout):
-				brk = true
+				if len(line) > 0 {
+					brk = true
+				}
 			}
 
 			if brk {
